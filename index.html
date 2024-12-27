@@ -1,14 +1,268 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Chemistry Model</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oxygen Atom 3D Quantum Model</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #000428, #004e92);
+            font-family: 'Arial', sans-serif;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            z-index: 100;
+        }
+    </style>
 </head>
 <body>
-  <!-- 3D Canvas -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r146/three.min.js"></script>
-  <script src="script.js" defer></script>
+    <div id="info">
+        <h3>Oxygen Atom (O) Quantum Simulation</h3>
+        <p>Protons: 8 | Neutrons: 8 | Electrons: 8</p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+    class OxygenAtomSimulation {
+        constructor() {
+            this.initScene();
+            this.createAtomicStructure();
+            this.setupLighting();
+            this.animate();
+        }
+
+        initScene() {
+            // Scene setup for Oxygen atom
+            this.scene = new THREE.Scene();
+            this.scene.background = new THREE.Color(0x000428);
+
+            // Camera
+            this.camera = new THREE.PerspectiveCamera(
+                75, 
+                window.innerWidth / window.innerHeight, 
+                0.1, 
+                1000
+            );
+            this.camera.position.z = 15;
+
+            // Renderer
+            this.renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                powerPreference: "high-performance"
+            });
+            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            this.renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(this.renderer.domElement);
+
+            // Resize handling
+            window.addEventListener('resize', this.onWindowResize.bind(this), false);
+        }
+
+        createAtomicStructure() {
+            // Nucleus for Oxygen (8 protons, 8 neutrons)
+            this.nucleus = this.createNucleus();
+            this.scene.add(this.nucleus);
+
+            // Electron shells for Oxygen (2-6 configuration)
+            this.electronShells = [];
+            const oxygenElectronConfiguration = [
+                { 
+                    radius: 2.5, 
+                    color: 0x3498db, 
+                    electrons: 2,  // K shell
+                    orbitTilt: Math.PI / 4 
+                },
+                { 
+                    radius: 4.5, 
+                    color: 0x2ecc71, 
+                    electrons: 6,  // L shell (complete)
+                    orbitTilt: Math.PI / 6 
+                }
+            ];
+
+            oxygenElectronConfiguration.forEach(config => {
+                const shell = this.createElectronShell(config);
+                const electrons = this.create3DElectrons(config);
+                
+                this.electronShells.push({
+                    shell,
+                    electrons,
+                    config
+                });
+            });
+        }
+
+        createNucleus() {
+            // Nucleus group for Oxygen
+            const nucleusGroup = new THREE.Group();
+
+            // 8 Protons (red)
+            const protonPositions = this.generateProtonPositions(8);
+            protonPositions.forEach(pos => {
+                const proton = this.createProton(0xff4444);
+                proton.position.copy(pos);
+                nucleusGroup.add(proton);
+            });
+
+            // 8 Neutrons (slightly different color)
+            const neutronPositions = this.generateProtonPositions(8);
+            neutronPositions.forEach(pos => {
+                const neutron = this.createProton(0x00ff00);
+                neutron.position.copy(pos);
+                nucleusGroup.add(neutron);
+            });
+
+            return nucleusGroup;
+        }
+
+        generateProtonPositions(count) {
+            const positions = [];
+            const radius = 1; // Nucleus radius
+
+            for (let i = 0; i < count; i++) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const r = radius * Math.cbrt(Math.random());
+
+                const x = r * Math.sin(phi) * Math.cos(theta);
+                const y = r * Math.sin(phi) * Math.sin(theta);
+                const z = r * Math.cos(phi);
+
+                positions.push(new THREE.Vector3(x, y, z));
+            }
+
+            return positions;
+        }
+
+        createProton(color) {
+            const geometry = new THREE.SphereGeometry(0.2, 32, 32);
+            const material = new THREE.MeshStandardMaterial({
+                color: color,
+                metalness: 0.7,
+                roughness: 0.3,
+                emissive: color,
+                emissiveIntensity: 0.5
+            });
+
+            const particle = new THREE.Mesh(geometry, material);
+
+            // Subtle glow effect
+            const glowGeometry = new THREE.SphereGeometry(0.25, 32, 32);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.2
+            });
+            const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+            particle.add(glowMesh);
+
+            return particle;
+        }
+
+        createElectronShell(config) {
+            const geometry = new THREE.TorusGeometry(
+                config.radius, 
+                0.05, 
+                64, 
+                100
+            );
+            
+            const material = new THREE.MeshStandardMaterial({
+                color: config.color,
+                transparent: true,
+                opacity: 0.3,
+                side: THREE.DoubleSide
+            });
+
+            const shell = new THREE.Mesh(geometry, material);
+            shell.rotation.x = config.orbitTilt;
+            
+            this.scene.add(shell);
+            return shell;
+        }
+
+        create3DElectrons(config) {
+            const electronGroup = new THREE.Group();
+            
+            for (let i = 0; i < config.electrons; i++) {
+                const electron = this.createSingleElectron();
+                
+                // 3D positioning using spherical coordinates
+                const theta = (Math.PI * 2 * i) / config.electrons;
+                const phi = Math.acos(1 - 2 * Math.random());
+                
+                electron.position.x = config.radius * Math.sin(phi) * Math.cos(theta);
+                electron.position.y = config.radius * Math.sin(phi) * Math.sin(theta);
+                electron.position.z = config.radius * Math.cos(phi);
+                
+                electronGroup.add(electron);
+            }
+
+            electronGroup.rotation.x = config.orbitTilt;
+            
+            this.scene.add(electronGroup);
+            return electronGroup;
+        }
+
+        createSingleElectron() {
+            const geometry = new THREE.SphereGeometry(0.15, 32, 32);
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x00a8ff,
+                metalness: 0.7,
+                roughness: 0.3
+            });
+
+            return new THREE.Mesh(geometry, material); }
+
+        setupLighting() {
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            const keyLight = new THREE.DirectionalLight(0xffffff, 1);
+            const fillLight = new THREE.PointLight(0xffffff, 0.5);
+
+            keyLight.position.set(5, 5, 5);
+            fillLight.position.set(-5, -5, -5);
+
+            this.scene.add(ambientLight, keyLight, fillLight);
+        }
+
+        onWindowResize() {
+            this.camera.aspect = window.innerWidth / window.innerHeight;
+            this.camera.updateProjectionMatrix();
+            this.renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        animate() {
+            requestAnimationFrame(this.animate.bind(this));
+
+            // Nucleus rotation
+            this.nucleus.rotation.x += 0.01;
+            this.nucleus.rotation.y += 0.01;
+
+            // Electron shell and electron dynamics
+            this.electronShells.forEach((shellData, index) => {
+                shellData.shell.rotation.z += 0.01 * (index + 1);
+                shellData.electrons.rotation.z += 0.02 * (index + 1);
+            });
+
+            this.renderer.render(this.scene, this.camera);
+        }
+    }
+
+    // Initialize on load
+    window.addEventListener('load', () => {
+        new OxygenAtomSimulation();
+    });
+    </script>
 </body>
 </html>
